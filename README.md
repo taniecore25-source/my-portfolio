@@ -1,4 +1,4 @@
-tanya Kumari – Web Developer Portfolio
+Atanya Kumari – Web Developer Portfolio
 
 This is my personal portfolio website showcasing my skills, projects, and certifications as a frontend developer.
 
