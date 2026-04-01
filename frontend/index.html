@@ -410,11 +410,12 @@
 
       // Send data to Flask backend (NeonDB)
       try {
-        const response = await fetch('http://localhost:5001/send_message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
+        const response = await fetch("https://my-portfolio-backend.up.railway.app/send_message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, message })
+      });
+              
 
         const result = await response.json();
 
