@@ -1,4 +1,3 @@
-# my-portfolio
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -368,10 +367,10 @@
       </div>
 
       <div class="contact-box">
-        <form>
-          <input type="text" placeholder="Your Name">
-          <input type="email" placeholder="Your Email">
-          <textarea rows="5" placeholder="Your Message"></textarea>
+        <form id="contactForm">
+          <input type="text" name="name" placeholder="Your Name" required>
+          <input type="email" name="email" placeholder="Your Email" required>
+          <textarea name="message" rows="5" placeholder="Your Message" required></textarea>
           <button type="submit">Send Message</button>
         </form>
       </div>
@@ -383,61 +382,53 @@
     © 2026 Atanya Kumari | Professional Portfolio
   </footer>
 
-  <!-- EmailJS CDN -->
- <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-<script>
-  (function() {
-    emailjs.init("IvPIUoPEwuHiD3Doq"); // Your EmailJS public key
-  })();
+  <!-- EmailJS & NeonDB Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script>
+    emailjs.init("IvPIUoPEwuHiD3Doq"); // Replace with your EmailJS public key
 
-  const backendURL = "https://your-backend-url.onrender.com/save-message"; // Replace with your deployed backend
+    document.getElementById('contactForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
 
-  document.querySelector('form').addEventListener('submit', function(event) {
-    event.preventDefault();
+      const formData = {
+        name: this.name.value,
+        email: this.email.value,
+        message: this.message.value
+      };
 
-    const name = this.querySelector('input[type="text"]').value;
-    const email = this.querySelector('input[type="email"]').value;
-    const message = this.querySelector('textarea').value;
+      // Send email via EmailJS
+      emailjs.send("service_v4ms0o1", "template_poxeubo", {
+        from_name: formData.name,
+        from_email: formData.email,
+        message: formData.message,
+        to_email: "atanyakumari109@gmail.com"
+      }).then(function() {
+        console.log('Email sent successfully!');
+      }, function(error) {
+        console.error('EmailJS error:', error.text);
+      });
 
-    if (!name || !email || !message) {
-      alert("Please fill all fields!");
-      return;
-    }
+      // Send data to Flask backend (NeonDB)
+      try {
+        const response = await fetch('http://localhost:5001/send_message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
 
-    // Send email via EmailJS
-    emailjs.send("service_v4ms0o1", "template_poxeubo", {
-      from_name: name,
-      from_email: email,
-      message: message,
-      to_email: "atanyakumari109@gmail.com"
-    }).then(function() {
-      
-      // Save message to NeonDB via backend
-      fetch(backendURL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ name, email, message })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.status === "success"){
-          console.log("Message saved in DB with ID:", data.message_id);
+        const result = await response.json();
+
+        if(result.status === 'success'){
+          alert('Message sent via email and saved to DB! ID: ' + result.message_id);
+          this.reset();
         } else {
-          console.error("DB Error:", data.message);
+          alert('DB Error: ' + result.error);
         }
-      })
-      .catch(err => console.error("DB Fetch Error:", err));
-
-      alert('Message sent successfully!');
-      event.target.reset();
-
-    }, function(error) {
-      alert('Failed to send email: ' + error.text);
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
     });
-  });
-</script>
+  </script>
 
 </body>
 </html>

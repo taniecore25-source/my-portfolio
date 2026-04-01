@@ -3,17 +3,19 @@ import psycopg2
 import uuid
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS, cross_origin
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
-# Connect to NeonDB
+# NeonDB connection
 DATABASE_URL = os.getenv("DATABASE_URL")
 conn = psycopg2.connect(DATABASE_URL)
 
-# Create messages table if not exists
+# Create table if not exists
 with conn.cursor() as cur:
     cur.execute("""
         CREATE TABLE IF NOT EXISTS messages (
@@ -25,6 +27,7 @@ with conn.cursor() as cur:
     """)
     conn.commit()
 
+@cross_origin()
 @app.route('/send_message', methods=['POST'])
 def send_message():
     data = request.json
@@ -40,9 +43,9 @@ def send_message():
                 VALUES (%s, %s, %s, %s)
             """, (message_id, name, email, message))
             conn.commit()
-        return jsonify({"status": "success", "message": "Message saved!", "message_id": message_id})
+        return jsonify({"status": "success", "message_id": message_id})
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
