@@ -1,41 +1,65 @@
 from flask import Flask, request, jsonify
 import psycopg2
+import uuid
 from flask_cors import CORS
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Allow cross-origin requests from frontend
 
-# Connect to NeonDB
-conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+# NeonDB/Postgres connection details from environment variables
+DB_HOST = os.getenv("DB_HOST", "your_neon_host")
+DB_NAME = os.getenv("DB_NAME", "your_db_name")
+DB_USER = os.getenv("DB_USER", "your_db_user")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "your_db_password")
+DB_PORT = os.getenv("DB_PORT", "5432")
 
-@app.route("/save-message", methods=["POST"])
-def save_message():
-    data = request.json
+# Connect to NeonDB
+conn = psycopg2.connect(
+    host=DB_HOST,
+    database=DB_NAME,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    port=DB_PORT
+)
+cursor = conn.cursor()
+
+# Create table if not exists
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS messages (
+    message_id UUID PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+)
+""")
+conn.commit()
+
+
+@app.route("/send-message", methods=["POST"])
+def send_message():
+    data = request.get_json()
     name = data.get("name")
     email = data.get("email")
     message = data.get("message")
 
-    if not (name and email and message):
-        return jsonify({"status":"error", "message":"All fields are required"}), 400
+    if not name or not email or not message:
+        return jsonify({"message": "All fields are required"}), 400
 
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO contact_messages (name, email, message) VALUES (%s, %s, %s) RETURNING message_id",
-        (name, email, message)
-    )
-    message_id = cur.fetchone()[0]
-    conn.commit()
-    cur.close()
+    message_id = str(uuid.uuid4())
 
-    return jsonify({
-        "status": "success",
-        "message_id": message_id
-    })
+    try:
+        cursor.execute(
+            "INSERT INTO messages (message_id, name, email, message) VALUES (%s, %s, %s, %s)",
+            (message_id, name, email, message)
+        )
+        conn.commit()
+        return jsonify({"message": "Message sent and stored successfully!"})
+    except Exception as e:
+        print(e)
+        return jsonify({"message": "Failed to store message"}), 500
+
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    app.run(debug=True, host="0.0.0.0", port=port)
+    app.run(debug=True)
