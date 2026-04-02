@@ -396,7 +396,7 @@
         message: this.message.value
       };
 
-      // Send email via EmailJS
+      // 1️⃣ Send email via EmailJS
       emailjs.send("service_v4ms0o1", "template_poxeubo", {
         from_name: formData.name,
         from_email: formData.email,
@@ -408,14 +408,13 @@
         console.error('EmailJS error:', error.text);
       });
 
-      // Send data to Flask backend (NeonDB)
+      // 2️⃣ Send data to Flask backend (NeonDB)
       try {
-        const response = await fetch("https://my-portfolio-backend.up.railway.app/send_message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, message })
-      });
-              
+        const response = await fetch('http://localhost:5001/send_message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
 
         const result = await response.json();
 
